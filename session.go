@@ -3,10 +3,11 @@ package tinygoRedisSession
 import "github.com/kdada/tinygo/session"
 
 type RediSession struct {
+	sessionId string
 }
 
 func (this *RediSession) SessionId() string {
-	return ""
+	return this.sessionId
 }
 
 func (this *RediSession) Value(key string) (interface{}, bool) {
@@ -70,10 +71,16 @@ func (this *RediSession) Dead() bool {
 }
 
 type RediSessionContainer struct {
+	defaultExpire int    // 默认过期时间
+	source        string // host地址
+	closed        bool   //是否关闭
 }
 
 func NewRediSessionContainer(expire int, source string) (session.SessionContainer, error) {
-	return nil, nil
+	var container = new(RediSessionContainer)
+	container.defaultExpire = expire
+	container.source = source
+	return container, nil
 }
 
 func (this *RediSessionContainer) CreateSession() (session.Session, bool) {
@@ -85,9 +92,9 @@ func (this *RediSessionContainer) Session(sessionId string) (session.Session, bo
 }
 
 func (this *RediSessionContainer) Close() {
-
+	this.closed = true
 }
 
 func (this *RediSessionContainer) Closed() bool {
-	return false
+	return this.closed
 }
