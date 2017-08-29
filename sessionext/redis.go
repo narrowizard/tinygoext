@@ -216,14 +216,11 @@ func (this *RediSessionContainer) writeRedis(session *RediSession) bool {
 		fmt.Println(err)
 		return false
 	}
-	_, err = conn.Do("Set", session.sessionId, string(bData))
+	conn.Send("MULTI")
+	conn.Send("Set", session.sessionId, string(bData))
+	conn.Send("Expire", session.sessionId, this.defaultExpire)
+	_, err = redis.Values(conn.Do("EXEC"))
 	if err != nil {
-		fmt.Println(err)
-		return false
-	}
-	_, err = conn.Do("Expire", session.sessionId, this.defaultExpire)
-	if err != nil {
-		fmt.Println(err)
 		return false
 	}
 	return true
@@ -243,9 +240,17 @@ func (this *RediSessionContainer) syncRedis(sessionId string) (*RediSession, boo
 	}
 	var conn = this.pool.Get()
 	defer conn.Close()
+	if session.Dead() {
+		// 从远程删除
+		conn.Do("Del", sessionId)
+		// 从本地删除
+		this.rwm.Lock()
+		delete(this.sessions, sessionId)
+		this.rwm.Unlock()
+		return nil, false
+	}
 	var data, err = redis.String(conn.Do("Get", sessionId))
 	if err != nil {
-		fmt.Println(err)
 		// session 在redis中不存在, 删除
 		this.rwm.Lock()
 		delete(this.sessions, sessionId)
