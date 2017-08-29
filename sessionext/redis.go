@@ -56,9 +56,19 @@ func (this *RediSession) String(key string) (string, bool) {
 }
 
 func (this *RediSession) Int(key string) (int, bool) {
-	v, ok := this.Value(key)
-	s, ok := v.(int)
-	return s, ok
+	v, _ := this.Value(key)
+	i, ok := v.(int)
+	if !ok {
+		s, ok := v.(float64)
+		if ok {
+			i = int(s)
+			if float64(i) == s {
+				return i, ok
+			}
+		}
+		return 0, false
+	}
+	return i, ok
 }
 
 func (this *RediSession) Bool(key string) (bool, bool) {
@@ -203,9 +213,9 @@ func (this *RediSessionContainer) writeRedis(session *RediSession) bool {
 	defer conn.Close()
 	var bData, err = json.Marshal(session.data)
 	if err != nil {
+		fmt.Println(err)
 		return false
 	}
-	fmt.Println(string(bData))
 	_, err = conn.Do("Set", session.sessionId, string(bData))
 	if err != nil {
 		fmt.Println(err)
@@ -236,8 +246,7 @@ func (this *RediSessionContainer) syncRedis(sessionId string) (*RediSession, boo
 	var data, err = redis.String(conn.Do("Get", sessionId))
 	if err != nil {
 		fmt.Println(err)
-		// session 在redis中不存在, 设置为过期
-		session.Die()
+		// session 在redis中不存在, 删除
 		this.rwm.Lock()
 		delete(this.sessions, sessionId)
 		this.rwm.Unlock()
