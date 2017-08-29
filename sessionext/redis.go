@@ -238,6 +238,9 @@ func (this *RediSessionContainer) syncRedis(sessionId string) (*RediSession, boo
 		fmt.Println(err)
 		// session 在redis中不存在, 设置为过期
 		session.Die()
+		this.rwm.Lock()
+		delete(this.sessions, sessionId)
+		this.rwm.Unlock()
 		return nil, false
 	}
 	var mData = make(map[string]sessionData)
