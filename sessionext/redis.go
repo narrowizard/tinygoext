@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/redsync.v1"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/kdada/tinygo/session"
 	"github.com/kdada/tinygo/util"
@@ -134,6 +136,7 @@ type RediSessionContainer struct {
 	source         string                  // redis host
 	closed         bool                    // 是否关闭
 	pool           *redis.Pool             // redis连接池
+	redlocks       *redsync.Redsync
 }
 
 func NewRediSessionContainer(expire int, source string) (session.SessionContainer, error) {
@@ -171,6 +174,9 @@ func NewRediSessionContainer(expire int, source string) (session.SessionContaine
 		IdleTimeout: time.Second * time.Duration(config.IdleTimeout),
 		Wait:        config.Wait,
 	}
+	var pools []redsync.Pool
+	pools = append(pools, container.pool)
+	container.redlocks = redsync.New(pools)
 	return container, nil
 }
 
@@ -216,6 +222,12 @@ func (this *RediSessionContainer) writeRedis(session *RediSession) bool {
 		fmt.Println(err)
 		return false
 	}
+	var lock = this.redlocks.NewMutex(session.sessionId + "_lock")
+	// 加锁
+	err = lock.Lock()
+	if err != nil {
+		return false
+	}
 	conn.Send("MULTI")
 	conn.Send("Set", session.sessionId, string(bData))
 	conn.Send("Expire", session.sessionId, this.defaultExpire)
@@ -223,6 +235,8 @@ func (this *RediSessionContainer) writeRedis(session *RediSession) bool {
 	if err != nil {
 		return false
 	}
+	// 解锁
+	lock.Unlock()
 	return true
 }
 
