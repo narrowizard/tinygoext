@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/redsync.v1"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/kdada/tinygo/session"
 	"github.com/kdada/tinygo/util"
 )

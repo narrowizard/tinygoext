@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-var source = `{"Host":"10.0.0.11:6379","MaxIdle":10,"MaxActive":10,"IdleTimeout":60,"Wait":false,"DB":2,"Password":""}`
+var source = `{"Host":"127.0.0.1:6379","MaxIdle":10,"MaxActive":10,"IdleTimeout":60,"Wait":false,"DB":2,"Password":""}`
 
 func TestRediSessionContainer(t *testing.T) {
 	var container, err = NewRediSessionContainer(1800, source)
