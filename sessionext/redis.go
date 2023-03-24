@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/redsync.v1"
-
+	"github.com/go-redsync/redsync"
 	"github.com/gomodule/redigo/redis"
 	"github.com/kdada/tinygo/session"
 	"github.com/kdada/tinygo/util"
